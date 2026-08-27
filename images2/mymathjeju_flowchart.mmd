@@ -1,0 +1,31 @@
+flowchart TD
+    classDef userStyle fill:#E1F5FE,stroke:#0288D1,stroke-width:2px;
+    classDef agentStyle fill:#FFF3E0,stroke:#F57C00,stroke-width:2px;
+    classDef toolStyle fill:#E8F5E9,stroke:#388E3C,stroke-width:2px;
+    classDef dataStyle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px;
+
+    User["👤 사용자 질문 (User Input)"]:::userStyle --> AgentPipeline["🤖 AgentExecutor (에이전트 파이프라인)"]:::agentStyle
+    
+    subgraph AgentSystem ["🧠 LangChain Agent 시스템"]
+        AgentPipeline --> PromptTemplate["📝 ChatPromptTemplate (시스템 프롬프트 & 대화기록)"]
+        AgentPipeline --> LLM["💡 ChatOpenAI (OpenRouter / gpt-4o-mini)"]
+        LLM --> ToolDecision{"⚙️ 도구(Tool) 판단"}
+    end
+
+    ToolDecision -- "수학 연산 필요시" --> MathTool["🧮 math_tool"]:::toolStyle
+    ToolDecision -- "제주도 정보 요청시" --> JejuTool["🏝️ jeju_tool"]:::toolStyle
+    ToolDecision -- "일반 대화시" --> DirectReply["💬 LLM 직접 응답"]
+
+    subgraph ToolExecution ["🔧 Pydantic 기반 도구 실행"]
+        MathTool --> MathSchema["📐 MathQuery Pydantic 스키마 (abs, sqrt, pow, 사칙연산)"]
+        JejuTool --> JejuSchema["🍊 JejuQuery Pydantic 스키마 (날씨, 관광지, 맛집, 팁)"]
+    end
+
+    MathSchema --> ExecutionResult["📊 도구 실행 결과 반환"]
+    JejuSchema --> ExecutionResult
+
+    ExecutionResult --> FinalResponse["🤖 AI 최종 답변 생성"]:::agentStyle
+    DirectReply --> FinalResponse
+
+    FinalResponse --> SaveJSON["💾 JSON 파일 저장 (data2/jejumath.json)"]:::dataStyle
+    FinalResponse --> UpdateHistory["💬 대화 기록(Chat History) 업데이트"]:::userStyle
